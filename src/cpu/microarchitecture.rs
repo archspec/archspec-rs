@@ -13,6 +13,7 @@ pub struct Microarchitecture {
     pub(crate) features: HashSet<String>,
     pub(crate) compilers: HashMap<String, Vec<Compiler>>,
     pub(crate) generation: usize,
+    pub(crate) cpu_part: Option<String>,
 
     // Not used in comparison
     pub(crate) ancestors: OnceLock<Vec<Arc<Microarchitecture>>>,
@@ -26,6 +27,7 @@ impl PartialEq<Self> for Microarchitecture {
             && self.parents == other.parents
             && self.compilers == other.compilers
             && self.generation == other.generation
+            && self.cpu_part == other.cpu_part
     }
 }
 
@@ -47,6 +49,7 @@ impl Debug for Microarchitecture {
             .field("features", &self.all_features())
             .field("compilers", &self.compilers)
             .field("generation", &self.generation)
+            .field("cpu_part", &self.cpu_part)
             .finish()
     }
 }
@@ -77,6 +80,7 @@ impl Microarchitecture {
             features,
             compilers,
             generation,
+            cpu_part: None,
             ancestors: OnceLock::new(),
         }
     }
@@ -244,17 +248,20 @@ fn known_microarchitectures() -> HashMap<String, Arc<Microarchitecture>> {
             })
             .unwrap_or_default();
         let generation = values.generation.unwrap_or(0);
+        let cpu_part = values.cpupart.clone();
 
         targets.insert(
             name.to_string(),
-            Arc::new(Microarchitecture::new_generation(
-                name.to_string(),
+            Arc::new(Microarchitecture {
+                name: name.to_string(),
                 parents,
                 vendor,
                 features,
                 compilers,
                 generation,
-            )),
+                cpu_part,
+                ancestors: OnceLock::new(),
+            }),
         );
     }
 

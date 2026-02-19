@@ -97,6 +97,7 @@ pub(crate) fn detect_windows<C: CpuIdProvider>(
                 features: cpuid.features.clone(),
                 compilers: Default::default(),
                 generation: 0,
+                cpu_part: None,
                 ancestors: Default::default(),
             })
         }
@@ -138,6 +139,8 @@ fn detect_linux(arch: &str, cpu_info: &ProcCpuInfo) -> Microarchitecture {
                 String::from("generic")
             };
 
+            let cpu_part = cpu_info.get("CPU part").map(|s| s.to_string());
+
             Microarchitecture {
                 vendor,
                 features: cpu_info
@@ -146,6 +149,7 @@ fn detect_linux(arch: &str, cpu_info: &ProcCpuInfo) -> Microarchitecture {
                     .split_ascii_whitespace()
                     .map(|s| s.to_string())
                     .collect(),
+                cpu_part,
                 ..Microarchitecture::generic("")
             }
         }
@@ -379,6 +383,7 @@ impl<S: SysCtlProvider, C: CpuIdProvider> TargetDetector<S, C> {
         };
 
         // Determine compatible targets based on the architecture.
+        let detected_cpu_part = detected_arch.cpu_part.as_deref();
         let compatible_targets = match target_arch {
             "aarch64" => compatible_microarchitectures_for_aarch64(&detected_arch, os == "macos"),
             "ppc64" | "ppc64le" => {
@@ -406,10 +411,22 @@ impl<S: SysCtlProvider, C: CpuIdProvider> TargetDetector<S, C> {
         // Filter the candidates to be descendant of the best generic candidate. This is to avoid that
         // the lack of a niche feature that can be disabled from e.g. BIOS prevents detection of a
         // reasonably performant architecture
-        let best_candidates = compatible_targets
+        let mut best_candidates = compatible_targets
             .iter()
             .filter(|target| target.is_strict_superset(best_generic_candidate))
             .collect_vec();
+
+        // If we detected a cpu_part and any candidate matches it, narrow to those candidates.
+        // This disambiguates microarchitectures with identical feature sets (e.g. neoverse_n2
+        // vs neoverse_v2 on aarch64).
+        if let Some(part) = detected_cpu_part {
+            if best_candidates
+                .iter()
+                .any(|t| t.cpu_part.as_deref() == Some(part))
+            {
+                best_candidates.retain(|t| t.cpu_part.as_deref() == Some(part));
+            }
+        }
 
         // Resort the matching candidates and fall back to the best generic candidate if there is no
         // matching non-generic candidate.
