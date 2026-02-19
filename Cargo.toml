@@ -13,6 +13,7 @@ resolver = "2"
 include = ["src/*", "json/cpu/*.json"]
 readme = "README.md"
 repository = "https://github.com/prefix-dev/archspec-rs"
+rust-version = "1.78.0"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
