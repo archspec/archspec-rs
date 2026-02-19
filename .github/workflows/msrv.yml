@@ -1,0 +1,31 @@
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+name: MSRV check
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  msrv_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install stable toolchain
+        run: rustup toolchain install stable
+
+      - name: Install Cargo MSRV
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-msrv
+          version: latest
+          use-tool-cache: true
+
+      - name: Verify minimum Rust version
+        run: |
+          cargo msrv verify
