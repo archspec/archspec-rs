@@ -194,7 +194,7 @@ impl SysCtlProvider for MachineSysCtlProvider {
                 use sysctl::Sysctl;
                 sysctl::Ctl::new(name)
                     .and_then(|ctl| ctl.value())
-                    .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))
+                    .map_err(std::io::Error::other)
                     .map(|v| v.to_string())
             } else {
                 unimplemented!("Sysctl is not implemented for this platform, requesting {name}")
