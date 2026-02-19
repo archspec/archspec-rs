@@ -557,6 +557,7 @@ mod tests {
     use crate::cpu::Microarchitecture;
     use crate::cpuid::{CpuIdProvider, CpuIdRegisters};
     use itertools::Itertools;
+    use pretty_assertions::assert_eq;
     use rstest::rstest;
     use std::collections::HashMap;
     use std::path::PathBuf;
