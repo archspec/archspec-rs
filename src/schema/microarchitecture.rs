@@ -44,6 +44,10 @@ pub struct Microarchitecture {
 
     /// Generation of the microarchitecture, if relevant.
     pub generation: Option<usize>,
+
+    /// CPU part identifier, used to distinguish microarchitectures with identical features
+    /// (e.g. aarch64 neoverse_n2 vs neoverse_v2).
+    pub cpupart: Option<String>,
 }
 
 /// Compiler optimization for a particular compiler, either one for all flavours

@@ -28,3 +28,4 @@ sysctl = "0.5"
 
 [dev-dependencies]
 rstest = "0.19"
+pretty_assertions = "1"
