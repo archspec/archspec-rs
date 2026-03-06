@@ -21,7 +21,7 @@ jobs:
     name: Check intra-doc links
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -31,7 +31,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -61,7 +61,7 @@ jobs:
           - { name: "Windows-x86_64",     target: x86_64-pc-windows-msvc,     os: windows-latest }
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: true
 
