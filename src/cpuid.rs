@@ -54,13 +54,18 @@ pub(crate) struct MachineCpuIdProvider {}
 
 impl CpuIdProvider for MachineCpuIdProvider {
     fn cpuid(&self, leaf: u32, sub_leaf: u32) -> CpuIdRegisters {
-        cfg_if::cfg_if! {
-            if #[cfg(target_arch = "x86_64")] {
-                unsafe { std::arch::x86_64::__cpuid_count(leaf, sub_leaf).into() }
-            } else if #[cfg(target_arch = "x86")] {
-                unsafe { std::arch::x86::__cpuid_count(leaf, sub_leaf).into() }
-            } else {
-                unimplemented!("Unsupported architecture for CPUID instruction ({leaf} {sub_leaf})")
+        // `__cpuid_count` is `unsafe` on MSRV but became safe in a later Rust release; allow
+        // the resulting `unused_unsafe` warning so the same code builds on both.
+        #[allow(unused_unsafe)]
+        {
+            cfg_if::cfg_if! {
+                if #[cfg(target_arch = "x86_64")] {
+                    unsafe { std::arch::x86_64::__cpuid_count(leaf, sub_leaf).into() }
+                } else if #[cfg(target_arch = "x86")] {
+                    unsafe { std::arch::x86::__cpuid_count(leaf, sub_leaf).into() }
+                } else {
+                    unimplemented!("Unsupported architecture for CPUID instruction ({leaf} {sub_leaf})")
+                }
             }
         }
     }

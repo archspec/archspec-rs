@@ -169,10 +169,12 @@ fn detect_linux(arch: &str, cpu_info: &ProcCpuInfo) -> Microarchitecture {
             }
         }
         "riscv64" => {
-            let uarch = match cpu_info.get("uarch") {
-                Some("sifive,u74-mc") => "u74mc",
-                Some(uarch) => uarch,
-                None => "riscv64",
+            let uarch = match (cpu_info.get("uarch"), cpu_info.get("model name")) {
+                (Some("sifive,u74-mc"), _) => "u74mc",
+                (Some("spacemit,x60"), _) => "x60",
+                (_, Some("Spacemit(R) X60")) => "x60",
+                (Some(uarch), _) => uarch,
+                (None, _) => "riscv64",
             };
             Microarchitecture::generic(uarch)
         }
@@ -214,21 +216,30 @@ fn detect_macos<S: SysCtlProvider>(arch: &str, sysctl: &S) -> Microarchitecture 
                 .sysctl("machdep.cpu.leaf7_features")
                 .unwrap_or_default()
                 .to_lowercase();
+            let cpu_extfeatures = sysctl
+                .sysctl("machdep.cpu.extfeatures")
+                .unwrap_or_default()
+                .to_lowercase();
             let vendor = sysctl.sysctl("machdep.cpu.vendor").unwrap_or_default();
 
             let mut features = cpu_features
                 .split_whitespace()
                 .chain(cpu_leaf7_features.split_whitespace())
+                .chain(cpu_extfeatures.split_whitespace())
                 .map(|s| s.to_string())
                 .collect::<HashSet<String>>();
 
-            // Flags detected on Darwin turned to their linux counterpart.
+            // Flags detected on Darwin turned to their linux counterpart. Keys may be a
+            // space separated list of tokens that all need to be present in `features`.
             for (darwin_flag, linux_flag) in crate::schema::MicroarchitecturesSchema::schema()
                 .conversions
                 .darwin_flags
                 .iter()
             {
-                if features.contains(darwin_flag) {
+                if darwin_flag
+                    .split_whitespace()
+                    .all(|token| features.contains(token))
+                {
                     features.extend(linux_flag.split_whitespace().map(|s| s.to_string()))
                 }
             }
@@ -240,16 +251,38 @@ fn detect_macos<S: SysCtlProvider>(arch: &str, sysctl: &S) -> Microarchitecture 
             }
         }
         _ => {
-            let model = match sysctl
+            let brand = sysctl
                 .sysctl("machdep.cpu.brand_string")
-                .map(|v| v.to_string().to_lowercase())
-                .ok()
-            {
-                Some(model) if model.contains("m2") => String::from("m2"),
-                Some(model) if model.contains("m1") => String::from("m1"),
-                Some(model) if model.contains("apple") => String::from("m1"),
-                _ => String::from("unknown"),
-            };
+                .unwrap_or_default()
+                .to_lowercase();
+
+            // Match `apple m<N>`, then walk down until a known target is found in the schema,
+            // matching the upstream Python detection logic.
+            let known_targets = Microarchitecture::known_targets();
+            let model = brand
+                .split_whitespace()
+                .skip_while(|token| *token != "apple")
+                .nth(1)
+                .and_then(|token| token.strip_prefix('m'))
+                .and_then(|digits| {
+                    let n_end = digits
+                        .find(|c: char| !c.is_ascii_digit())
+                        .unwrap_or(digits.len());
+                    digits[..n_end].parse::<u32>().ok()
+                })
+                .and_then(|max_n| {
+                    (1..=max_n)
+                        .rev()
+                        .map(|n| format!("m{}", n))
+                        .find(|candidate| known_targets.contains_key(candidate))
+                })
+                .unwrap_or_else(|| {
+                    if brand == "apple processor" {
+                        String::from("m1")
+                    } else {
+                        String::from("aarch64")
+                    }
+                });
 
             Microarchitecture {
                 vendor: String::from("Apple"),

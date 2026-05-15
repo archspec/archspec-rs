@@ -55,8 +55,8 @@ jobs:
           - { name: "Linux-riscv64gc",    target: riscv64gc-unknown-linux-gnu, os: ubuntu-latest }
           - { name: "Linux-s390x",        target: s390x-unknown-linux-gnu, os: ubuntu-latest }
 
-          - { name: "macOS",              target: x86_64-apple-darwin,        os: macOS-latest }
-          - { name: "macOS-arm",          target: aarch64-apple-darwin,       os: macOS-14 }
+          - { name: "macOS",              target: x86_64-apple-darwin,        os: macos-15 }
+          - { name: "macOS-arm",          target: aarch64-apple-darwin,       os: macos-15 }
 
           - { name: "Windows-x86_64",     target: x86_64-pc-windows-msvc,     os: windows-latest }
     steps:
@@ -64,6 +64,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
 
       - uses: taiki-e/setup-cross-toolchain-action@v1
         with:
