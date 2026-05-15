@@ -56,7 +56,7 @@ impl CpuIdProvider for MachineCpuIdProvider {
     fn cpuid(&self, leaf: u32, sub_leaf: u32) -> CpuIdRegisters {
         cfg_if::cfg_if! {
             if #[cfg(target_arch = "x86_64")] {
-                unsafe { std::arch::x86_64::__cpuid_count(leaf, sub_leaf).into() }
+                std::arch::x86_64::__cpuid_count(leaf, sub_leaf).into()
             } else if #[cfg(target_arch = "x86")] {
                 unsafe { std::arch::x86::__cpuid_count(leaf, sub_leaf).into() }
             } else {
