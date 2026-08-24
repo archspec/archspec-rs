@@ -79,7 +79,7 @@ jobs:
         run: cargo clippy --all
 
       - name: "Install cargo nextest"
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.2
         with:
           tool: cargo-nextest
 
