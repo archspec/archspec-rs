@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/archspec/archspec-rs/compare/archspec-v0.2.0...archspec-v0.2.1) - 2026-08-24
+
+### Other
+
+- *(deps)* bump taiki-e/install-action from 2 to 2.85.2 ([#22](https://github.com/archspec/archspec-rs/pull/22))
+
 ## [0.2.0](https://github.com/archspec/archspec-rs/compare/archspec-v0.1.3...archspec-v0.2.0) - 2026-03-06
 
 ### Fixed
