@@ -1,9 +1,11 @@
+use crate::builtin;
 use crate::cpu::detect::target_architecture_uname;
-use crate::schema::{Compiler, CompilerSet};
+use crate::schema::CompilerSet;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::iter;
+use std::slice;
 use std::sync::{Arc, OnceLock};
 
 pub struct Microarchitecture {
@@ -11,7 +13,9 @@ pub struct Microarchitecture {
     pub(crate) parents: Vec<Arc<Microarchitecture>>,
     pub(crate) vendor: String,
     pub(crate) features: HashSet<String>,
-    pub(crate) compilers: HashMap<String, Vec<Compiler>>,
+    // Catalog names are unique. Comparing the name and this range therefore compares compiler
+    // settings without loading them. Absent and empty compiler maps both use `None`.
+    pub(crate) compilers: Option<builtin::Compilers>,
     pub(crate) generation: usize,
     pub(crate) cpu_part: Option<String>,
 
@@ -47,53 +51,42 @@ impl Debug for Microarchitecture {
             )
             .field("vendor", &self.vendor)
             .field("features", &self.all_features())
-            .field("compilers", &self.compilers)
+            .field("compilers", &DebugCompilers(self.compilers))
             .field("generation", &self.generation)
             .field("cpu_part", &self.cpu_part)
             .finish()
     }
 }
 
-impl Microarchitecture {
-    pub(crate) fn new(
-        name: String,
-        parents: Vec<Arc<Microarchitecture>>,
-        vendor: String,
-        features: HashSet<String>,
-        compilers: HashMap<String, Vec<Compiler>>,
-    ) -> Self {
-        Microarchitecture::new_generation(name, parents, vendor, features, compilers, 0)
-    }
+struct DebugCompilers(Option<builtin::Compilers>);
 
-    pub(crate) fn new_generation(
-        name: String,
-        parents: Vec<Arc<Microarchitecture>>,
-        vendor: String,
-        features: HashSet<String>,
-        compilers: HashMap<String, Vec<Compiler>>,
-        generation: usize,
-    ) -> Self {
+impl Debug for DebugCompilers {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut map = f.debug_map();
+        for (name, set) in self.0.into_iter().flat_map(builtin::Compilers::entries) {
+            let compilers = match &set {
+                CompilerSet::Several(compilers) => compilers.as_slice(),
+                CompilerSet::Single(compiler) => slice::from_ref(compiler),
+            };
+            map.entry(&name, &compilers);
+        }
+        map.finish()
+    }
+}
+
+impl Microarchitecture {
+    /// Constructs a new generic micro architecture
+    pub fn generic(name: &str) -> Microarchitecture {
         Microarchitecture {
-            name,
-            parents,
-            vendor,
-            features,
-            compilers,
-            generation,
+            name: name.to_string(),
+            parents: Vec::new(),
+            vendor: "generic".to_string(),
+            features: HashSet::new(),
+            compilers: None,
+            generation: 0,
             cpu_part: None,
             ancestors: OnceLock::new(),
         }
-    }
-
-    /// Constructs a new generic micro architecture
-    pub fn generic(name: &str) -> Microarchitecture {
-        Microarchitecture::new(
-            name.to_string(),
-            vec![],
-            "generic".to_string(),
-            HashSet::new(),
-            HashMap::new(),
-        )
     }
 
     /// Returns the name of the micro architecture.
@@ -206,69 +199,30 @@ pub struct UnsupportedMicroarchitecture;
 
 fn known_microarchitectures() -> HashMap<String, Arc<Microarchitecture>> {
     let mut known_targets: HashMap<String, Arc<Microarchitecture>> = HashMap::new();
-    let schema = crate::schema::MicroarchitecturesSchema::schema();
+    for target in builtin::targets() {
+        let parents = target
+            .parents
+            .split_ascii_whitespace()
+            .map(|parent| known_targets[parent].clone())
+            .collect();
 
-    fn fill_target_from_map(
-        name: &str,
-        schema: &crate::schema::MicroarchitecturesSchema,
-        targets: &mut HashMap<String, Arc<Microarchitecture>>,
-    ) {
-        let data = &schema.microarchitectures;
-        let values = &data[name];
-        let parent_names = &values.from;
-        for parent in parent_names {
-            if !targets.contains_key(parent) {
-                fill_target_from_map(parent, schema, targets);
-            }
-        }
-        let parents = parent_names
-            .iter()
-            .map(|parent| targets[parent].clone())
-            .collect::<Vec<Arc<Microarchitecture>>>();
-
-        let vendor = values.vendor.clone();
-        let features: HashSet<String> = values.features.iter().cloned().collect();
-        let compilers: HashMap<String, Vec<Compiler>> = values
-            .compilers
-            .as_ref()
-            .map(|compilers| {
-                compilers
-                    .iter()
-                    .map(|(vendor, set)| {
-                        (
-                            vendor.clone(),
-                            // normalize to a sequence of compiler definitions
-                            match set {
-                                CompilerSet::Several(cs) => cs.clone(),
-                                CompilerSet::Single(c) => vec![c.clone()],
-                            },
-                        )
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-        let generation = values.generation.unwrap_or(0);
-        let cpu_part = values.cpupart.clone();
-
-        targets.insert(
-            name.to_string(),
+        known_targets.insert(
+            target.name.to_owned(),
             Arc::new(Microarchitecture {
-                name: name.to_string(),
+                name: target.name.to_owned(),
                 parents,
-                vendor,
-                features,
-                compilers,
-                generation,
-                cpu_part,
+                vendor: target.vendor.to_owned(),
+                features: target
+                    .features
+                    .split_ascii_whitespace()
+                    .map(str::to_owned)
+                    .collect(),
+                compilers: target.compilers.filter(|compilers| !compilers.is_empty()),
+                generation: target.generation.unwrap_or(0),
+                cpu_part: target.part.map(str::to_owned),
                 ancestors: OnceLock::new(),
             }),
         );
-    }
-
-    for name in schema.microarchitectures.keys() {
-        if !known_targets.contains_key(name) {
-            fill_target_from_map(name, schema, &mut known_targets);
-        }
     }
 
     if let Ok(host_platform) = target_architecture_uname() {
@@ -278,4 +232,20 @@ fn known_microarchitectures() -> HashMap<String, Arc<Microarchitecture>> {
     }
 
     known_targets
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Microarchitecture;
+
+    #[test]
+    fn compiler_metadata_affects_equality() {
+        let targets = Microarchitecture::known_targets();
+        assert_eq!(targets["x86"].as_ref(), &Microarchitecture::generic("x86"));
+        assert_eq!(targets["ppc"].as_ref(), &Microarchitecture::generic("ppc"));
+        assert_ne!(
+            targets["x86_64"].as_ref(),
+            &Microarchitecture::generic("x86_64")
+        );
+    }
 }

@@ -8,6 +8,7 @@
 //! Built documentation for the Python library can be found at
 //! [archspec.readthedocs.org](https://archspec.readthedocs.org) for additional context.
 
+mod builtin;
 pub mod cpu;
 mod cpuid;
 pub mod schema;

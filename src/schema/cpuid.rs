@@ -1,7 +1,7 @@
 use serde::Deserialize;
-use std::sync::OnceLock;
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct CpuIdSchema {
     pub vendor: CpuIdProperty,
     pub highest_extension_support: CpuIdProperty,
@@ -10,26 +10,15 @@ pub struct CpuIdSchema {
     pub extension_flags: Vec<CpuIdFlags>,
 }
 
-impl CpuIdSchema {
-    pub fn schema() -> &'static CpuIdSchema {
-        static SCHEMA: OnceLock<CpuIdSchema> = OnceLock::new();
-        SCHEMA.get_or_init(|| {
-            serde_json::from_str(include_str!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/json/cpu/cpuid.json"
-            )))
-            .expect("Failed to load cpuid.json")
-        })
-    }
-}
-
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct CpuIdProperty {
     pub description: String,
     pub input: CpuIdInput,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct CpuIdFlags {
     pub description: String,
     pub input: CpuIdInput,
@@ -37,6 +26,7 @@ pub struct CpuIdFlags {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct CpuIdBits {
     pub name: String,
     pub register: CpuRegister,
@@ -53,6 +43,7 @@ pub enum CpuRegister {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct CpuIdInput {
     pub eax: u32,
     pub ecx: u32,
