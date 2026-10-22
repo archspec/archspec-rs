@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use super::microarchitecture::{Microarchitecture, UnsupportedMicroarchitecture};
+use crate::builtin;
 use crate::cpuid::{CpuId, CpuIdProvider, MachineCpuIdProvider};
 use itertools::Itertools;
 use std::{
@@ -95,7 +96,7 @@ pub(crate) fn detect_windows<C: CpuIdProvider>(
                 parents: vec![],
                 vendor: cpuid.vendor.clone(),
                 features: cpuid.features.clone(),
-                compilers: Default::default(),
+                compilers: None,
                 generation: 0,
                 cpu_part: None,
                 ancestors: Default::default(),
@@ -129,12 +130,9 @@ fn detect_linux(arch: &str, cpu_info: &ProcCpuInfo) -> Microarchitecture {
                 // https://developer.arm.com/docs/ddi0487/latest/arm-architecture-reference-manual-armv8-for-armv8-a-architecture-profile
                 // https://github.com/gcc-mirror/gcc/blob/master/gcc/config/aarch64/aarch64-cores.def
                 // https://patchwork.kernel.org/patch/10524949/
-                crate::schema::MicroarchitecturesSchema::schema()
-                    .conversions
-                    .arm_vendors
-                    .get(implementer)
-                    .cloned()
-                    .unwrap_or_else(|| "generic".to_string())
+                builtin::arm_vendor(implementer)
+                    .unwrap_or("generic")
+                    .to_owned()
             } else {
                 String::from("generic")
             };
@@ -231,11 +229,7 @@ fn detect_macos<S: SysCtlProvider>(arch: &str, sysctl: &S) -> Microarchitecture 
 
             // Flags detected on Darwin turned to their linux counterpart. Keys may be a
             // space separated list of tokens that all need to be present in `features`.
-            for (darwin_flag, linux_flag) in crate::schema::MicroarchitecturesSchema::schema()
-                .conversions
-                .darwin_flags
-                .iter()
-            {
+            for (darwin_flag, linux_flag) in builtin::darwin_flags() {
                 if darwin_flag
                     .split_whitespace()
                     .all(|token| features.contains(token))

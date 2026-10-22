@@ -39,6 +39,13 @@ At present, it supports APIs to detect and model compatibility relationships amo
 
 Developed with ❤️ at [prefix.dev](https://prefix.dev).
 
+## Updating the CPU tables
+
+The built-in CPU tables are generated from the `json` submodule and checked into
+`src/generated`. After updating the submodule, run `python3 scripts/generate-tables.py`
+(requires `rustfmt`) and commit the generated files. `cargo test -p archspec` checks
+that the compiled tables match the JSON.
+
 ## License
 
 Licensed under either of

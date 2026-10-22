@@ -1,30 +1,18 @@
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::sync::OnceLock;
 
 /// Schema for microarchitecture definitions and feature aliases.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct MicroarchitecturesSchema {
     pub microarchitectures: HashMap<String, Microarchitecture>,
     pub feature_aliases: HashMap<String, FeatureAlias>,
     pub conversions: Conversions,
 }
 
-impl MicroarchitecturesSchema {
-    pub fn schema() -> &'static MicroarchitecturesSchema {
-        static SCHEMA: OnceLock<MicroarchitecturesSchema> = OnceLock::new();
-        SCHEMA.get_or_init(|| {
-            serde_json::from_str(include_str!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/json/cpu/microarchitectures.json"
-            )))
-            .expect("Failed to load microarchitectures.json")
-        })
-    }
-}
-
 /// Defines the attributes and requirements of a microarchitecture.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Microarchitecture {
     /// A list of the immediate microarchitectures that this one is considered
     /// to be derived from.
@@ -53,6 +41,7 @@ pub struct Microarchitecture {
 /// Compiler optimization for a particular compiler, either one for all flavours
 /// of the compiler or several indicating how to do it for particular version ranges.
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(untagged)]
 pub enum CompilerSet {
     /// Multiple entries (Compiler change options across versions).
@@ -79,6 +68,7 @@ pub struct Compiler {
 
 /// Synthesised feature aliases derived from existing features or families.
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct FeatureAlias {
     /// The reason for why this alias is defined.
     pub reason: Option<String>,
@@ -92,6 +82,7 @@ pub struct FeatureAlias {
 
 /// Conversions that map some platform specific value to canonical values.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Conversions {
     pub description: String,
 
