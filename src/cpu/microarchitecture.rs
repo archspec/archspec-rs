@@ -1,10 +1,11 @@
 use crate::builtin;
 use crate::cpu::detect::target_architecture_uname;
-use crate::schema::{Compiler, CompilerSet};
+use crate::schema::CompilerSet;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::iter;
+use std::slice;
 use std::sync::{Arc, OnceLock};
 
 pub struct Microarchitecture {
@@ -50,10 +51,26 @@ impl Debug for Microarchitecture {
             )
             .field("vendor", &self.vendor)
             .field("features", &self.all_features())
-            .field("compilers", &self.compilers())
+            .field("compilers", &DebugCompilers(self.compilers))
             .field("generation", &self.generation)
             .field("cpu_part", &self.cpu_part)
             .finish()
+    }
+}
+
+struct DebugCompilers(Option<builtin::Compilers>);
+
+impl Debug for DebugCompilers {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut map = f.debug_map();
+        for (name, set) in self.0.into_iter().flat_map(builtin::Compilers::entries) {
+            let compilers = match &set {
+                CompilerSet::Several(compilers) => compilers.as_slice(),
+                CompilerSet::Single(compiler) => slice::from_ref(compiler),
+            };
+            map.entry(&name, &compilers);
+        }
+        map.finish()
     }
 }
 
@@ -70,20 +87,6 @@ impl Microarchitecture {
             cpu_part: None,
             ancestors: OnceLock::new(),
         }
-    }
-
-    fn compilers(&self) -> HashMap<String, Vec<Compiler>> {
-        self.compilers
-            .into_iter()
-            .flat_map(builtin::Compilers::entries)
-            .map(|(name, set)| {
-                let compilers = match set {
-                    CompilerSet::Several(compilers) => compilers,
-                    CompilerSet::Single(compiler) => vec![compiler],
-                };
-                (name, compilers)
-            })
-            .collect()
     }
 
     /// Returns the name of the micro architecture.

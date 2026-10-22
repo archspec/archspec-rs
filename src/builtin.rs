@@ -3,9 +3,15 @@ use crate::schema::*;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-include!("generated/strings.rs");
-include!("generated/microarchitectures.rs");
-include!("generated/cpuid.rs");
+mod cpuid;
+mod microarchitectures;
+mod strings;
+
+use cpuid::{BITS, EXTENSION, EXTENSION_FLAGS, FLAGS, VENDOR};
+use microarchitectures::{
+    ALIASES, ARM_VENDORS, COMPILERS, DARWIN_FLAGS, DESCRIPTION, TARGETS, VERSIONS,
+};
+use strings::STRINGS;
 
 // Generated string offsets point to NUL-terminated UTF-8 strings. The maximum
 // offset marks an absent optional value; table ranges are end-exclusive.

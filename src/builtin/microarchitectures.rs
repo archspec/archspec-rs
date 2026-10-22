@@ -2,7 +2,7 @@
 // String fields are byte offsets in STRINGS. u16::MAX denotes a missing value.
 // Table ranges are end-exclusive. Every target appears after its parents.
 // [name, parents, vendor, features, generation, cpupart, compiler_start, compiler_end]
-const TARGETS: &[[u16; 8]] = &[
+pub(super) const TARGETS: &[[u16; 8]] = &[
     [71, 79, 80, 79, 65535, 65535, 0, 5],
     [44, 79, 80, 79, 65535, 65535, 5, 6],
     [118, 79, 80, 79, 65535, 65535, 65535, 0],
@@ -78,7 +78,7 @@ const TARGETS: &[[u16; 8]] = &[
     [10908, 10545, 586, 10923, 65535, 65535, 307, 312],
 ];
 // [name, single, version_start, version_end]
-const COMPILERS: &[[u16; 4]] = &[
+pub(super) const COMPILERS: &[[u16; 4]] = &[
     [32, 0, 0, 1],
     [44, 0, 1, 2],
     [48, 0, 2, 3],
@@ -393,7 +393,7 @@ const COMPILERS: &[[u16; 4]] = &[
     [245, 0, 415, 416],
 ];
 // [versions, flags, name]
-const VERSIONS: &[[u16; 3]] = &[
+pub(super) const VERSIONS: &[[u16; 3]] = &[
     [0, 2, 65535],
     [0, 2, 65535],
     [0, 2, 65535],
@@ -812,7 +812,7 @@ const VERSIONS: &[[u16; 3]] = &[
     [10900, 202, 65535],
 ];
 // [name, reason, any_of, families]
-const ALIASES: &[[u16; 4]] = &[
+pub(super) const ALIASES: &[[u16; 4]] = &[
     [11331, 11339, 65535, 11423],
     [11437, 11444, 11516, 65535],
     [11560, 11564, 65535, 11423],
@@ -822,8 +822,8 @@ const ALIASES: &[[u16; 4]] = &[
     [11837, 11844, 11886, 65535],
     [11893, 11897, 65535, 11423],
 ];
-const DESCRIPTION: u16 = 12004;
-const ARM_VENDORS: &[[u16; 2]] = &[
+pub(super) const DESCRIPTION: u16 = 12004;
+pub(super) const ARM_VENDORS: &[[u16; 2]] = &[
     [12075, 522],
     [12080, 12085],
     [12094, 1524],
@@ -843,7 +843,7 @@ const ARM_VENDORS: &[[u16; 2]] = &[
     [12260, 12265],
     [12271, 7055],
 ];
-const DARWIN_FLAGS: &[[u16; 2]] = &[
+pub(super) const DARWIN_FLAGS: &[[u16; 2]] = &[
     [12276, 12283],
     [12287, 12295],
     [12306, 12311],
