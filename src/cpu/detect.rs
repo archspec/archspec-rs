@@ -193,11 +193,27 @@ impl SysCtlProvider for MachineSysCtlProvider {
     fn sysctl(&self, name: &str) -> std::io::Result<String> {
         cfg_if::cfg_if! {
             if #[cfg(target_os = "macos")] {
-                use sysctl::Sysctl;
-                sysctl::Ctl::new(name)
-                    .and_then(|ctl| ctl.value())
-                    .map_err(std::io::Error::other)
-                    .map(|v| v.to_string())
+                let name = std::ffi::CString::new(name).map_err(std::io::Error::other)?;
+                let read = |value, len: &mut usize| {
+                    // SAFETY: `name` is NUL-terminated, and `value` is either null or points to
+                    // a buffer of at least `*len` bytes. The final two arguments disable writes.
+                    if unsafe {
+                        libc::sysctlbyname(name.as_ptr(), value, len, std::ptr::null_mut(), 0)
+                    } == -1
+                    {
+                        Err(std::io::Error::other(std::io::Error::last_os_error()))
+                    } else {
+                        Ok(())
+                    }
+                };
+
+                let mut len = 0;
+                read(std::ptr::null_mut(), &mut len)?;
+                let mut value = vec![0; len];
+                read(value.as_mut_ptr().cast(), &mut len)?;
+                // String sysctl values include a trailing NUL.
+                value.truncate(len.saturating_sub(1));
+                String::from_utf8(value).map_err(std::io::Error::other)
             } else {
                 unimplemented!("Sysctl is not implemented for this platform, requesting {name}")
             }
